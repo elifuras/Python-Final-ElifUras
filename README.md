@@ -18,3 +18,112 @@ Python modüllerini QGIS ortamına entegre etme süreci, bazı modüllerin QGIS�
 QGIS Python konsolunu kullanarak, analiz adımlarını başarıyla tamamladım. Yüklediğim veriler üzerinde mesafe hesaplama, yoğunluk analizi ve görselleştirme işlemlerini QGIS arayüzü ile birleştirerek gerçekleştirdim. Analizlerin her bir adımını Python kodlarıyla çalıştırarak, QGIS’in arayüzünde bu verileri görselleştirdim.
 
 Ayrıca, Python'un Folium kütüphanesini kullanarak, harita üzerinde bir heatmap (ısı haritası) oluşturmayı başardım. Bu heatmap, Airbnb konaklama noktalarının yoğunluklarını gösteren bir görselleştirme yöntemi olarak kullanıldı. Harita üzerinde konumlar yer alırken, bu konumların yoğunlukları renk tonlarıyla ifade edilerek, harita üzerinden görsel bir analiz yapılmasına olanak tanındı.
+
+
+import geopandas as gpd
+import matplotlib.pyplot as plt
+
+# Veri dosyasının tam yolu
+shp_path = r'D:\python-final-elifuras\data\data.shp'  # Verinizin yolu
+
+# Veriyi yükleyin
+airbnb_data = gpd.read_file(shp_path)
+
+# Veriyi görselleştirin
+ax = airbnb_data.plot(marker='o', color='pink', markersize=10, edgecolor='black', linewidth=0.5)
+
+# Başlık ve etiketler
+plt.title("Airbnb Noktaları - Ankara ve Bolu")
+plt.xlabel("Longitude")
+plt.ylabel("Latitude")
+
+# Görselleştirmeyi göster
+plt.show()
+import geopandas as gpd
+
+# Veri dosyasının yolu
+shp_path = r'D:\python-final-elifuras\data\data.shp'
+
+# Veriyi yükleyin
+airbnb_data = gpd.read_file(shp_path)
+
+# Veri tipini ve ilk birkaç satırı kontrol edelim
+print(airbnb_data.crs)  # Koordinat sistemi
+print(airbnb_data.head())  # İlk 5 satır
+
+from shapely.ops import nearest_points
+
+# Her bir noktayı en yakın diğer noktaya bağlayalım
+distances = []
+for idx, point in airbnb_data.iterrows():
+    # Diğer noktalar arasındaki mesafeleri hesaplayalım
+    nearest_point = airbnb_data.geometry.apply(lambda x: nearest_points(point.geometry, x)[1])
+    distance = point.geometry.distance(nearest_point.loc[nearest_point != point.geometry].iloc[0])  # Mesafeyi hesapla
+    distances.append(distance)
+
+# Yeni bir sütun ekleyelim
+airbnb_data['nearest_distance'] = distances
+
+# Sonuçları kontrol edelim
+print(airbnb_data[['nearest_distance']].head())
+
+import matplotlib.pyplot as plt
+
+# Mesafe analizini görselleştirelim
+airbnb_data.plot(column='nearest_distance', cmap='coolwarm', legend=True, figsize=(10, 6))
+
+plt.title('En Yakın Airbnb Noktaları - Mesafe Analizi')
+plt.xlabel('Longitude')
+plt.ylabel('Latitude')
+plt.show()
+
+import geopandas as gpd
+import folium
+from folium.plugins import HeatMap
+import pandas as pd
+
+# Veri dosyasının tam yolu
+shp_path = r'D:\python-final-elifuras\data\data.shp'  # Verinizin yolu
+
+# Veriyi yükleyin
+airbnb_data = gpd.read_file(shp_path)
+
+# Latitude ve Longitude sütunlarını alın
+coordinates = airbnb_data[['geometry']].apply(lambda x: (x.geometry.y, x.geometry.x), axis=1)
+coordinates = pd.DataFrame(coordinates.tolist(), columns=['Latitude', 'Longitude'])
+
+# Harita oluşturma - Başlangıç noktası olarak Ankara'nın merkezini alalım
+m = folium.Map(location=[39.9334, 32.8597], zoom_start=12)
+
+# Isı haritası oluşturma
+HeatMap(data=coordinates).add_to(m)
+
+# Haritayı kaydetme
+m.save("heatmap.html")
+
+import geopandas as gpd
+import folium
+from folium.plugins import HeatMap
+import pandas as pd
+
+# Veri dosyasının tam yolu
+shp_path = r'D:\python-final-elifuras\data\data.shp'  # Verinizin yolu
+
+# Veriyi yükleyin
+airbnb_data = gpd.read_file(shp_path)
+
+# Koordinatları çıkaralım
+coordinates = airbnb_data[['geometry']].apply(lambda x: (x.geometry.y, x.geometry.x), axis=1)
+coordinates = pd.DataFrame(coordinates.tolist(), columns=['Latitude', 'Longitude'])
+
+# Harita oluşturma - Başlangıç noktası olarak Ankara'nın merkezini alalım
+m = folium.Map(location=[39.9334, 32.8597], zoom_start=12)
+
+# Isı haritası oluşturma
+HeatMap(data=coordinates).add_to(m)
+
+# Haritayı kaydetme
+m.save("heatmap.html")
+
+
+
